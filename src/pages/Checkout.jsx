@@ -196,7 +196,7 @@ const Checkout = () => {
                       onChange={() => setPaymentMethod("midtrans")}
                     />
                     <label className="form-check-label" htmlFor="midtrans">
-                      Midtrans (VA)
+                      Online (VA)
                     </label>
                   </div>
 
