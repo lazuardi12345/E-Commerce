@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Skeleton from "react-loading-skeleton";
 import { Link, useParams } from "react-router-dom";
-import Marquee from "react-fast-marquee";
 import { useDispatch } from "react-redux";
 import { addCart } from "../redux/action";
 import { Footer, Navbar } from "../components";
@@ -10,10 +9,7 @@ import { toast } from "react-toastify";
 const Product = () => {
   const { id } = useParams();
   const [product, setProduct] = useState(null);
-  const [similarProducts, setSimilarProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [loadingSimilar, setLoadingSimilar] = useState(true);
-
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -22,25 +18,21 @@ const Product = () => {
       try {
         const res = await fetch(`https://testing.kopdesmerahputih.id/api/produks/${id}`);
         const data = await res.json();
-        if (data) {
-          setProduct({
-            ...data,
-            kategori: data.kategori || { nama_kategori: "Tanpa Kategori" }, 
-          });
 
-          if (data.kategori_id) {
-            const res2 = await fetch(
-              `https://testing.kopdesmerahputih.id/api/produks?kategori_id=${data.kategori_id}`
-            );
-            const data2 = await res2.json();
-            if (Array.isArray(data2) && data2.length > 0) {
-              setSimilarProducts(data2);
-            }
-          }
-        }
+        if (!data || !data.id) throw new Error("Produk tidak ditemukan.");
+
+        const processedProduct = {
+          ...data,
+          kategori: data.kategori || { nama_kategori: "Tanpa Kategori" },
+          img: data.img || "https://via.placeholder.com/400x400?text=No+Image",
+          harga: data.harga || 0,
+          levels: data.levels || [],
+        };
+
+        setProduct(processedProduct);
       } catch (error) {
-        console.error("Error fetching data:", error);
-        toast.error("Failed to fetch product data. Please try again.");
+        console.error("Fetch error:", error);
+        toast.error("Gagal memuat data produk.");
       } finally {
         setLoading(false);
       }
@@ -48,12 +40,6 @@ const Product = () => {
 
     fetchProduct();
   }, [id]);
-
-  useEffect(() => {
-    if (similarProducts.length > 0) {
-      setLoadingSimilar(false);
-    }
-  }, [similarProducts]);
 
   if (loading) {
     return (
@@ -69,7 +55,15 @@ const Product = () => {
   }
 
   if (!product) {
-    return <div>No product found!</div>;
+    return (
+      <>
+        <Navbar />
+        <div className="container text-center my-5">
+          <h2>Produk tidak ditemukan!</h2>
+        </div>
+        <Footer />
+      </>
+    );
   }
 
   return (
@@ -80,7 +74,7 @@ const Product = () => {
           <div className="col-md-6">
             <img
               className="img-fluid"
-              src={product.img || "default-image.jpg"}
+              src={product.img}
               alt={product.nama || "Product"}
               width="400px"
               height="400px"
@@ -93,42 +87,29 @@ const Product = () => {
             <h1 className="display-5">{product.nama}</h1>
             <h3 className="display-6 my-4">Rp {product.harga}</h3>
             <p className="lead">{product.deskripsi}</p>
-            <button className="btn btn-outline-dark" onClick={() => dispatch(addCart(product))}>
-              Add to Cart
+
+            {product.levels.length > 0 && (
+              <div className="mb-3">
+                <strong>Level Pedas:</strong>
+                <ul className="mt-2">
+                  {product.levels.map((level) => (
+                    <li key={level.id}>{level.nama_level}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <button
+              className="btn btn-outline-dark"
+              onClick={() => dispatch(addCart(product))}
+            >
+              Tambahkan ke Keranjang
             </button>
             <Link to="/cart" className="btn btn-dark mx-3">
-              Go to Cart
+              Menuju ke keranjang
             </Link>
           </div>
         </div>
-
-        {/* Similar Products */}
-        {loadingSimilar ? (
-          <div className="row my-5 py-5">
-            <h2>Loading similar products...</h2>
-            <Skeleton count={5} height={300} />
-          </div>
-        ) : (
-          <div className="row my-5 py-5">
-            <h2>You may also like</h2>
-            <Marquee pauseOnHover speed={50}>
-              {similarProducts.map((item) => (
-                <div key={item.id} className="card mx-4 text-center">
-                  <img className="card-img-top p-3" src={item.img} alt="Card" height={300} width={300} />
-                  <div className="card-body">
-                    <h5 className="card-title">{item.nama}</h5>
-                    <Link to={`/product/${item.id}`} className="btn btn-dark m-1">
-                      Buy Now
-                    </Link>
-                    <button className="btn btn-dark m-1" onClick={() => dispatch(addCart(item))}>
-                      Add to Cart
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </Marquee>
-          </div>
-        )}
       </div>
       <Footer />
     </>
